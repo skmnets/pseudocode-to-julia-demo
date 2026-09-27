@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pseudocode → Julia | Testing Computational Reasoning Before Implementation</title>
+  <meta name="description" content="An educational prototype for university computer science courses (CAP 6318) demonstrating constrained LLM translation of student pseudocode to Julia without silent bug repairs.">
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="site-header">
+      <div class="header-top">
+        <div class="header-titles">
+          <h1>
+            Pseudocode &rarr; Julia
+            <span class="badge badge-prototype">Teaching Prototype</span>
+          </h1>
+          <div class="subtitle">Testing computational reasoning before implementation</div>
+        </div>
+        <div class="header-meta">
+          <span class="course-tag">CAP 6318 Demo</span>
+          <button id="btnOpenSettings" class="btn-secondary" title="Configure LLM backend endpoint">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            <span id="backendModeBadge">Mode: Demo</span>
+          </button>
+        </div>
+      </div>
+      <div class="header-explanation">
+        <strong>Pedagogical principle:</strong> Describe the algorithm first. The AI is instructed to translate your specification into Julia without adding missing algorithmic steps or correcting your reasoning.
+      </div>
+    </header>
+
+    <!-- Quick Demonstration Cases Bar -->
+    <section class="demo-selector-bar" aria-label="Predefined pedagogical demonstrations">
+      <div class="demo-selector-label">Load Demonstration Case:</div>
+      <div class="demo-buttons-group">
+        <button id="btnDemoCorrect" class="demo-btn active" data-demo="correct">
+          1. Correct Algorithm (Sufficient)
+        </button>
+        <button id="btnDemoError" class="demo-btn" data-demo="conceptual_error">
+          2. Conceptual Error (Preserved)
+        </button>
+        <button id="btnDemoMissing" class="demo-btn" data-demo="missing_step">
+          3. Missing Step (Unspecified)
+        </button>
+      </div>
+    </section>
+
+    <!-- Main Two-Column Workflow -->
+    <main class="workflow-grid">
+      <!-- Left Column: Student Specification (Stages 1, 2, 3) -->
+      <section class="student-specification-col">
+        <!-- Stage 1 — Problem -->
+        <article class="stage-card" id="stage1">
+          <div class="stage-header">
+            <h2 class="stage-title">
+              <span class="stage-number">1</span>
+              Problem
+            </h2>
+            <span class="stage-hint">Select a programming task</span>
+          </div>
+          <div class="form-group">
+            <label for="problemSelect">Choose a benchmark problem:</label>
+            <select id="problemSelect"></select>
+          </div>
+          <div id="problemDescriptionWrapper">
+            <div id="problemDescription" class="problem-description-box"></div>
+          </div>
+          <div id="customProblemInputWrapper" style="display: none; margin-top: 0.75rem;">
+            <label for="customProblemInput">Type your custom problem statement:</label>
+            <textarea id="customProblemInput" rows="3" placeholder="Enter problem statement for students..."></textarea>
+          </div>
+        </article>
+
+        <!-- Stage 2 — Explain the Logic -->
+        <article class="stage-card" id="stage2">
+          <div class="stage-header">
+            <h2 class="stage-title">
+              <span class="stage-number">2</span>
+              Explain the Logic
+            </h2>
+            <span class="stage-hint">Natural-language reasoning</span>
+          </div>
+          <div class="form-group">
+            <label for="studentExplanation">Explain your approach:</label>
+            <textarea id="studentExplanation" rows="4" placeholder="Explain in words what the program should do before writing any Julia syntax."></textarea>
+          </div>
+        </article>
+
+        <!-- Stage 3 — Write Pseudocode -->
+        <article class="stage-card" id="stage3">
+          <div class="stage-header">
+            <h2 class="stage-title">
+              <span class="stage-number">3</span>
+              Write Pseudocode
+            </h2>
+            <span class="stage-hint">Algorithmic specification</span>
+          </div>
+          <div class="form-group">
+            <label for="studentPseudocode">Your pseudocode / algorithm:</label>
+            <textarea id="studentPseudocode" class="code-editor" rows="12" spellcheck="false" placeholder="Write step-by-step algorithmic pseudocode..."></textarea>
+          </div>
+          <div class="warning-callout">
+            <strong>Important:</strong> The AI will follow these instructions literally. Missing algorithmic steps may lead to incorrect code.
+          </div>
+          <div style="margin-top: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+            <label class="checkbox-label">
+              <input type="checkbox" id="chkShowPrompt">
+              <span>Show the exact prompt sent to the model</span>
+            </label>
+            <button id="btnViewInstructions" class="btn-secondary" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">
+              View Model Rules
+            </button>
+          </div>
+        </article>
+
+        <!-- Stage 4 Action Button -->
+        <div style="margin-top: 1rem;">
+          <button id="btnGenerate" class="btn-primary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            Generate Julia from my pseudocode
+          </button>
+        </div>
+      </section>
+
+      <!-- Right Column: Implementation & Assessment (Stage 4, Tests, Analysis) -->
+      <section class="implementation-col">
+        <!-- Stage 4 — Generated Julia -->
+        <article class="stage-card" id="stage4">
+          <div class="stage-header">
+            <h2 class="stage-title">
+              <span class="stage-number">4</span>
+              Generated Julia
+            </h2>
+            <div id="statusIndicator" class="status-pill status-ready">
+              <span class="status-dot"></span>
+              <span id="statusText">Ready</span>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <div id="badgeStatusContainer">
+              <span id="specificationBadge" class="badge badge-sufficient">Algorithm specification sufficient</span>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--color-text-subtle);">
+              Backend: <span id="currentBackendDisplay">Demo Mode (Built-in)</span>
+            </div>
+          </div>
+
+          <div class="code-container">
+            <div class="code-header-bar">
+              <span class="code-lang-label">julia</span>
+              <div class="code-actions">
+                <button id="btnCopyCode" class="btn-code-action" title="Copy code to clipboard">Copy code</button>
+                <button id="btnRegenerate" class="btn-code-action" title="Re-run generation">Regenerate</button>
+              </div>
+            </div>
+            <pre class="code-display"><code id="juliaCodeOutput"># Click "Generate Julia from my pseudocode" or select a demo case above.</code></pre>
+          </div>
+
+          <!-- Pedagogical commentary -->
+          <div class="pedagogy-box">
+            <div class="pedagogy-box-title">Pedagogical Observation</div>
+            <p id="pedagogyNote">
+              In this system, the model acts as an implementation layer rather than an algorithmic tutor. Errors or omissions in the pseudocode are directly preserved in Julia.
+            </p>
+          </div>
+
+          <!-- Simulated Tests -->
+          <div class="tests-panel">
+            <div class="tests-header">
+              <div style="font-size: 0.85rem; font-weight: 700; color: var(--color-text-main);">
+                Run against tests &mdash; Prototype
+              </div>
+              <span style="font-size: 0.72rem; color: var(--color-text-subtle); text-transform: uppercase;">Simulated Runner</span>
+            </div>
+            <div id="testResultsList">
+              <div class="test-item">
+                <span>Select a demo case or generate code to inspect simulated test evaluation.</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Prompt preview (if checkbox checked) -->
+        <article class="stage-card" id="promptPreviewCard" style="display: none;">
+          <div class="stage-header">
+            <h3 class="stage-title" style="font-size: 0.85rem;">Exact Prompt Assembled for Model</h3>
+            <span class="badge badge-mode">Transparent Prompt</span>
+          </div>
+          <div class="code-container" style="max-height: 250px; overflow-y: auto;">
+            <pre class="code-display" style="min-height: auto; font-size: 0.78rem;"><code id="promptPreviewContent"></code></pre>
+          </div>
+        </article>
+
+        <!-- Why Constrain The Model? Comparison Section -->
+        <article class="comparison-container">
+          <div class="comparison-header">
+            <div>
+              <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--color-primary);">Why constrain the model?</h3>
+              <p style="font-size: 0.8rem; color: var(--color-text-muted);">Comparing unconstrained tutor/assistant vs. literal translator behavior on flawed pseudocode</p>
+            </div>
+            <div class="comparison-toggle" role="group" aria-label="Model constraint comparison">
+              <button id="toggleLiteral" class="comparison-toggle-btn active" data-view="literal">Literal implementation</button>
+              <button id="toggleStandard" class="comparison-toggle-btn" data-view="standard">Standard AI</button>
+            </div>
+          </div>
+
+          <div id="comparisonDisplay">
+            <div class="code-container">
+              <div class="code-header-bar">
+                <span id="comparisonLangLabel" class="code-lang-label">Julia (Literal Translation)</span>
+                <span id="comparisonModeTag" class="badge badge-prototype" style="font-size: 0.65rem;">Constrained Prompt</span>
+              </div>
+              <pre class="code-display" style="min-height: 120px;"><code id="comparisonCodeOutput"></code></pre>
+            </div>
+            <div class="pedagogy-box" style="margin-top: 0.65rem; background-color: #ffffff;">
+              <p id="comparisonExplanation" style="font-size: 0.84rem;">
+                The implementation is syntactically valid, but the student's algorithm contains a conceptual mistake. The AI preserves that mistake rather than solving the problem for the student.
+              </p>
+            </div>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <!-- Instructor View (Collapsible) -->
+    <section class="instructor-panel" id="instructorPanel">
+      <div class="instructor-panel-header" id="instructorPanelHeader">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+          <strong style="font-size: 0.95rem; color: var(--color-primary);">Instructor View &mdash; Pedagogical Pipeline &amp; Assessment Context</strong>
+        </div>
+        <span id="instructorToggleIcon" style="font-size: 0.85rem; color: var(--color-text-subtle);">▼ Expand</span>
+      </div>
+      <div class="instructor-panel-body">
+        <!-- Visual Pipeline -->
+        <div style="font-size: 0.82rem; font-weight: 700; text-transform: uppercase; color: var(--color-text-muted);">
+          Evaluation Pipeline
+        </div>
+        <div class="pipeline-flow">
+          <div class="pipeline-node">Problem<br><small style="font-weight:400; color:var(--color-text-subtle);">Specification</small></div>
+          <div class="pipeline-arrow">&rarr;</div>
+          <div class="pipeline-node">Student Reasoning<br><small style="font-weight:400; color:var(--color-text-subtle);">Natural Language</small></div>
+          <div class="pipeline-arrow">&rarr;</div>
+          <div class="pipeline-node">Pseudocode<br><small style="font-weight:400; color:var(--color-text-subtle);">Step-by-step logic</small></div>
+          <div class="pipeline-arrow">&rarr;</div>
+          <div class="pipeline-node node-constrained">Constrained LLM<br><small style="font-weight:600; color:#1d4ed8;">Literal Translator</small></div>
+          <div class="pipeline-arrow">&rarr;</div>
+          <div class="pipeline-node">Julia Implementation<br><small style="font-weight:400; color:var(--color-text-subtle);">Executable code</small></div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem;">
+          <div>
+            <h4 style="font-size: 0.88rem; font-weight: 700; color: var(--color-primary); margin-bottom: 0.5rem;">Assessment Idea (CAP 6318)</h4>
+            <ul style="padding-left: 1.2rem; font-size: 0.85rem; line-height: 1.6; color: var(--color-text-muted);">
+              <li><strong>Reasoning &amp; Pseudocode credit:</strong> Student submits algorithmic steps demonstrating computational problem decomposition.</li>
+              <li><strong>Faithful execution:</strong> The LLM is restricted from fixing logic bugs or inventing steps; code correctness directly reflects specification rigor.</li>
+              <li><strong>Pedagogical separation:</strong> Students receive the convenience of AI-assisted language syntax without outsourcing the core problem-solving process.</li>
+            </ul>
+          </div>
+          <div>
+            <h4 style="font-size: 0.88rem; font-weight: 700; color: var(--color-primary); margin-bottom: 0.5rem;">Current Submission Snapshot</h4>
+            <div style="background: #f8fafc; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 0.75rem; font-size: 0.8rem; line-height: 1.5;">
+              <div><strong>Problem:</strong> <span id="snapshotProblem">Problem 1 — Positive Mean</span></div>
+              <div><strong>Generation Mode:</strong> <span id="snapshotMode">Demo Mode (Built-in)</span></div>
+              <div><strong>Timestamp:</strong> <span id="snapshotTimestamp">Initial load</span></div>
+              <div><strong>Algorithmic Status:</strong> <span id="snapshotStatus">Sufficient</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+      <div>
+        <strong>Privacy &amp; Data Note:</strong> Prototype only. Do not submit sensitive or personally identifiable information. All user content remains client-side unless sent to your configured backend proxy.
+      </div>
+      <div>
+        Designed for academic instruction &bull; Target: <code>skmnets/pseudocode-to-julia-demo</code>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Settings Modal (Backend & API URL) -->
+  <div id="settingsModal" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Backend &amp; LLM Configuration</h3>
+        <button id="btnCloseSettings" class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom: 1rem; font-size: 0.88rem; color: var(--color-text-muted);">
+          To run live translations against OpenAI GPT-4o-mini without exposing your private API key in the browser, deploy the provided serverless proxy (Cloudflare Worker or Vercel) and paste its URL below.
+        </p>
+
+        <div class="form-group">
+          <label>Mode:</label>
+          <div style="display: flex; gap: 1rem; margin-bottom: 0.75rem;">
+            <label class="checkbox-label">
+              <input type="radio" name="backendMode" value="demo" checked>
+              <span><strong>Demo Mode</strong> (Zero API key required; works immediately)</span>
+            </label>
+          </div>
+          <div style="display: flex; gap: 1rem;">
+            <label class="checkbox-label">
+              <input type="radio" name="backendMode" value="live">
+              <span><strong>Live Model Backend</strong> (Requires deployed serverless proxy)</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group" id="backendUrlGroup" style="margin-top: 1rem;">
+          <label for="backendUrlInput">Backend Endpoint URL (e.g. <code>API_BASE_URL/generate</code>):</label>
+          <input type="text" id="backendUrlInput" placeholder="https://pseudocode-to-julia-proxy.yourname.workers.dev/">
+          <small style="color: var(--color-text-subtle); display: block; margin-top: 0.35rem;">
+            Do NOT enter an OpenAI secret key directly here. Enter the URL of your deployed Cloudflare Worker or Vercel function.
+          </small>
+        </div>
+
+        <div id="backendHealthFeedback" style="display: none; margin-top: 0.75rem; padding: 0.5rem 0.75rem; font-size: 0.82rem; border-radius: var(--radius-sm);"></div>
+      </div>
+      <div class="modal-footer">
+        <button id="btnTestBackend" class="btn-secondary">Test Connection</button>
+        <button id="btnSaveSettings" class="btn-primary" style="width: auto; padding: 0.5rem 1rem;">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Model Instructions Modal -->
+  <div id="instructionsModal" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 750px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Constrained LLM System Instructions</h3>
+        <button id="btnCloseInstructions" class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 0.75rem;">
+          These 11 rules are injected into the LLM system prompt on every generation request to prevent silent algorithmic repair:
+        </p>
+        <div class="code-container" style="max-height: 400px; overflow-y: auto;">
+          <pre class="code-display" style="font-size: 0.8rem; line-height: 1.55;"><code id="instructionsText"></code></pre>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btnDismissInstructions" class="btn-secondary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="./js/problems.js"></script>
+  <script src="./js/demo.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>

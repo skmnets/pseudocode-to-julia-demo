@@ -1,0 +1,10 @@
+name = "pseudocode-to-julia-proxy"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+[vars]
+OPENAI_MODEL = "gpt-4o-mini"
+ALLOWED_ORIGIN = "https://skmnets.github.io"
+
+# For OPENAI_API_KEY, use Cloudflare Secrets:
+# npx wrangler secret put OPENAI_API_KEY

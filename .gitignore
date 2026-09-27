@@ -1,0 +1,14 @@
+# Logs and OS files
+.DS_Store
+Thumbs.db
+*.log
+
+# Wrangler and Cloudflare local state
+backend/.wrangler/
+backend/node_modules/
+backend/wrangler.toml
+
+# Environment variables & secrets (NEVER commit keys!)
+.env
+.env.*
+!.env.example
